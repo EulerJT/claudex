@@ -1,0 +1,12 @@
+{
+  "model": "gpt-5.4[1m]",
+  "max_tokens": 64,
+  "messages": [
+    {
+      "role": "user",
+      "content": "hello"
+    }
+  ],
+  "stream": true,
+  "extra_field": "extra"
+}

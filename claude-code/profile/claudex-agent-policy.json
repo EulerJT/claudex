@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "Explore": {
+      "work_turn_budget": 12,
+      "finalization_reserve": 2,
+      "result_contract_version": 1,
+      "finalization_denied_tools": ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill", "Agent"]
+    },
+    "Plan": {
+      "work_turn_budget": 10,
+      "finalization_reserve": 2,
+      "result_contract_version": 1,
+      "finalization_denied_tools": ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill", "Agent"]
+    },
+    "Verify": {
+      "work_turn_budget": 16,
+      "finalization_reserve": 2,
+      "result_contract_version": 1,
+      "finalization_denied_tools": ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill", "Agent"]
+    },
+    "Forensic": {
+      "work_turn_budget": 32,
+      "finalization_reserve": 2,
+      "result_contract_version": 1,
+      "finalization_denied_tools": ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill", "Agent"]
+    }
+  }
+}

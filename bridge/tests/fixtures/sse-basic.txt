@@ -1,0 +1,11 @@
+: ping
+:event
+: keep alive
+
+data: {"chunk":1}
+event: update
+data: {"text":"line1"}
+data: {"text":"line2"}
+
+event: final
+data: {"done":true}

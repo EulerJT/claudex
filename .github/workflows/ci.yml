@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    name: Rust bridge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bridge -> target
+      - name: Format
+        run: cargo fmt --check --manifest-path bridge/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --manifest-path bridge/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Test
+        env:
+          NO_PROXY: 127.0.0.1,localhost
+          no_proxy: 127.0.0.1,localhost
+        run: cargo test --manifest-path bridge/Cargo.toml --locked -- --test-threads=1
+      - name: Release build
+        run: cargo build --manifest-path bridge/Cargo.toml --release --locked
+
+  control-plane:
+    name: Claude Code control plane
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate launcher and JSON
+        run: |
+          bash -n claudex
+          python3 -m json.tool claude-code/profile/settings.json >/dev/null
+          python3 -m json.tool claude-code/profile/agents.json >/dev/null
+          python3 -m json.tool claude-code/profile/claudex-agent-policy.json >/dev/null
+      - name: Validate profile
+        run: |
+          python3 -B claude-code/profile/hooks/claudex_hook.py \
+            --validate-profile \
+            claude-code/profile/agents.json \
+            claude-code/profile/claudex-agent-policy.json
+      - name: Hook regression tests
+        run: python3 -B -m unittest claude-code/tests/test_harness.py

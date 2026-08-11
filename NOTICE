@@ -1,0 +1,15 @@
+Claudex third-party notice
+
+`bridge/` is based on Raine Virta's claude-code-proxy and is used and modified under the
+MIT License:
+https://github.com/raine/claude-code-proxy
+
+The upstream copyright and license text is retained in `bridge/LICENSE`. Claudex changes
+primarily cover Messages/Responses compatibility, conversation identity and
+continuation, inline compaction, capacity isolation, tool-schema compatibility, and
+composition with the Claude Code control plane.
+
+Claude Code is not bundled with this repository. Users must install it separately and
+comply with its license and service terms. OpenAI, Codex, Anthropic, and Claude are
+trademarks of their respective owners. This project is not affiliated with or endorsed
+by those companies.

@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "disableAllHooks": false,
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(pwd)",
+      "Bash(ls *)",
+      "Bash(stat *)",
+      "Bash(wc *)",
+      "Bash(rg *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "failIfUnavailable": true
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Skill|Bash|TaskUpdate|Read|Grep|Glob|WebSearch|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDEX_PROFILE_ASSETS_DIR/hooks/claudex_hook.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

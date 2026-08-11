@@ -1,0 +1,38 @@
+{
+  "Explore": {
+    "description": "仅在目标路径、文件或符号未知时执行有界仓库调查；已知 UUID、精确路径、文件名或符号时不得使用。",
+    "prompt": "只调查委派的 scope。accepted_facts 视为已验证，除非发现直接矛盾证据；达到 acceptance criteria 后立即停止。不得修改文件。不得启动 Agent、Skill、Task、Cron 或 Web 工具。最终状态只允许 complete、blocked 或 needs_extension；needs_extension 仅在存在决策关键未知项且 next_evidence 明确时使用。最后一行必须是无代码围栏的单行 JSON：CLAUDEX_AGENT_RESULT={\"status\":\"complete|blocked|needs_extension\",\"acceptance_criteria_met\":[],\"evidence\":[],\"critical_unknowns\":[],\"next_evidence\":null,\"extension_reason\":null}",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "sonnet",
+    "effort": "max",
+    "maxTurns": 14,
+    "background": false
+  },
+  "Plan": {
+    "description": "基于已接受事实形成有界执行计划；不重新执行全仓库、远端或历史调查。",
+    "prompt": "基于 accepted_facts 形成执行计划，只补充决策所必需的局部只读证据。不得修改文件，不得启动 Agent、Skill、Task、Cron、Web 或 Bash。达到 acceptance criteria 后立即停止。最终状态只允许 complete、blocked 或 needs_extension。最后一行必须是无代码围栏的单行 JSON：CLAUDEX_AGENT_RESULT={\"status\":\"complete|blocked|needs_extension\",\"acceptance_criteria_met\":[],\"evidence\":[],\"critical_unknowns\":[],\"next_evidence\":null,\"extension_reason\":null}",
+    "tools": ["Read", "Grep", "Glob"],
+    "model": "opus",
+    "effort": "max",
+    "maxTurns": 12,
+    "background": false
+  },
+  "Verify": {
+    "description": "对明确验收标准执行有界只读验证；不负责实现或扩展调查范围。",
+    "prompt": "只验证委派的 acceptance criteria，复用 accepted_facts；不得修改文件，不得启动 Agent、Skill、Task、Cron 或 Web 工具。达到判定所需证据后立即停止。最终状态只能是 pass、fail 或 blocked。最后一行必须是无代码围栏的单行 JSON：CLAUDEX_AGENT_RESULT={\"status\":\"pass|fail|blocked\",\"acceptance_criteria_met\":[],\"evidence\":[],\"critical_unknowns\":[],\"next_evidence\":null,\"extension_reason\":null}",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "opus",
+    "effort": "max",
+    "maxTurns": 18,
+    "background": false
+  },
+  "Forensic": {
+    "description": "仅在用户或 main 明确选择时执行较深故障取证；普通 Explore 不得自动升级到此角色。",
+    "prompt": "只调查明确委派的故障域，不修改文件，不启动 Agent、Skill、Task、Cron 或 Web 工具。每一阶段冻结 confirmed、disproved、unresolved_critical 与 next_evidence；发现足以裁决的证据即停止。最终状态只允许 complete、blocked 或 needs_extension。最后一行必须是无代码围栏的单行 JSON：CLAUDEX_AGENT_RESULT={\"status\":\"complete|blocked|needs_extension\",\"acceptance_criteria_met\":[],\"evidence\":[],\"critical_unknowns\":[],\"next_evidence\":null,\"extension_reason\":null}",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "opus",
+    "effort": "max",
+    "maxTurns": 34,
+    "background": false
+  }
+}

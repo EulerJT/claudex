@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+release_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+profile_assets_dir="${release_root}/claude-code/profile"
+profile_settings="${profile_assets_dir}/settings.json"
+profile_agents="${profile_assets_dir}/agents.json"
+profile_policy="${profile_assets_dir}/claudex-agent-policy.json"
+profile_tools="${profile_assets_dir}/claudex-tools-2.1.222.txt"
+profile_harness="${profile_assets_dir}/harness.md"
+profile_hook="${profile_assets_dir}/hooks/claudex_hook.py"
+claude_bin="${CLAUDEX_CLAUDE_BIN:-claude}"
+bridge_url="${CLAUDEX_BRIDGE_URL:-http://127.0.0.1:18765}"
+state_root="${XDG_STATE_HOME:-${HOME}/.local/state}/claudex-oss"
+
+usage() {
+  printf '%s\n' \
+    'Usage:' \
+    '  ./claudex [--model MODEL] [--effort LEVEL] [--permission-mode MODE] [--] [Claude Code arguments...]' \
+    '  ./claudex models' \
+    '  ./claudex version'
+}
+
+show_models() {
+  printf '%-7s %-16s %s\n' 'ALIAS' 'MODEL' 'EFFORT LEVELS'
+  printf '%-7s %-16s %s\n' 'base' 'gpt-5.6' 'low medium high xhigh max'
+  printf '%-7s %-16s %s\n' 'sol' 'gpt-5.6-sol' 'low medium high xhigh max'
+  printf '%-7s %-16s %s\n' 'terra' 'gpt-5.6-terra' 'low medium high xhigh max'
+  printf '%-7s %-16s %s\n' 'luna' 'gpt-5.6-luna' 'low medium high xhigh max'
+}
+
+model_id_for() {
+  case "$1" in
+    base|gpt-5.6) printf '%s' 'gpt-5.6' ;;
+    sol|gpt-5.6-sol) printf '%s' 'gpt-5.6-sol' ;;
+    terra|gpt-5.6-terra) printf '%s' 'gpt-5.6-terra' ;;
+    luna|gpt-5.6-luna) printf '%s' 'gpt-5.6-luna' ;;
+    *) return 1 ;;
+  esac
+}
+
+valid_effort() {
+  case "$1" in
+    low|medium|high|xhigh|max) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+valid_permission_mode() {
+  case "$1" in
+    acceptEdits|auto|bypassPermissions|manual|dontAsk|plan) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+validate_assets() {
+  local asset
+  for asset in \
+    "${profile_settings}" \
+    "${profile_agents}" \
+    "${profile_policy}" \
+    "${profile_tools}" \
+    "${profile_harness}" \
+    "${profile_hook}"; do
+    [[ -r "${asset}" ]] || {
+      printf 'Missing public profile asset: %s\n' "${asset}" >&2
+      return 1
+    }
+  done
+  python3 -B "${profile_hook}" \
+    --validate-profile "${profile_agents}" "${profile_policy}"
+}
+
+run_claude() {
+  local model_choice='sol'
+  local effort='xhigh'
+  local permission_mode='auto'
+  local -a client_args=()
+
+  while (($#)); do
+    case "$1" in
+      --model)
+        (($# >= 2)) || { printf '%s\n' '--model requires a value' >&2; return 2; }
+        model_choice="$2"
+        shift 2
+        ;;
+      --effort)
+        (($# >= 2)) || { printf '%s\n' '--effort requires a value' >&2; return 2; }
+        effort="$2"
+        shift 2
+        ;;
+      --permission-mode)
+        (($# >= 2)) || { printf '%s\n' '--permission-mode requires a value' >&2; return 2; }
+        permission_mode="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        client_args+=("$@")
+        break
+        ;;
+      *)
+        client_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  local client_arg
+  local pass_default_permission=1
+  for client_arg in "${client_args[@]}"; do
+    case "${client_arg}" in
+      --agents|--agents=*|--bare|--setting-sources|--setting-sources=*|--settings|--settings=*|--tools|--tools=*)
+        printf 'Claudex reserves Claude Code option: %s\n' "${client_arg}" >&2
+        return 2
+        ;;
+      --permission-mode|--permission-mode=*|--dangerously-skip-permissions)
+        pass_default_permission=0
+        ;;
+    esac
+  done
+
+  valid_effort "${effort}" || {
+    printf 'Unsupported effort: %s\n' "${effort}" >&2
+    return 2
+  }
+  valid_permission_mode "${permission_mode}" || {
+    printf 'Unsupported permission mode: %s\n' "${permission_mode}" >&2
+    return 2
+  }
+  local model_id
+  model_id="$(model_id_for "${model_choice}")" || {
+    printf 'Unsupported model: %s\n' "${model_choice}" >&2
+    return 2
+  }
+
+  validate_assets
+  command -v "${claude_bin}" >/dev/null || {
+    printf 'Claude Code executable not found: %s\n' "${claude_bin}" >&2
+    return 1
+  }
+  local claude_version
+  claude_version="$("${claude_bin}" --version)"
+  [[ "${claude_version}" == '2.1.222 (Claude Code)' ]] || {
+    printf 'This profile is pinned to Claude Code 2.1.222; found: %s\n' "${claude_version}" >&2
+    return 1
+  }
+
+  mkdir -p -- "${state_root}/claude" "${state_root}/harness"
+  chmod 700 -- "${state_root}" "${state_root}/claude" "${state_root}/harness"
+
+  local -a tools=()
+  mapfile -t tools < "${profile_tools}"
+  local tool_list
+  tool_list="$(IFS=,; printf '%s' "${tools[*]}")"
+  local agents_json
+  agents_json="$(<"${profile_agents}")"
+  local harness_prompt
+  harness_prompt="$(<"${profile_harness}")"
+  local -a permission_args=()
+  if ((pass_default_permission)); then
+    permission_args=(--permission-mode "${permission_mode}")
+  fi
+
+  export ANTHROPIC_BASE_URL="${bridge_url}"
+  export ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-unused}"
+  export ANTHROPIC_MODEL="${model_id}"
+  export CLAUDE_CONFIG_DIR="${state_root}/claude"
+  export CLAUDEX_PROFILE_ASSETS_DIR="${profile_assets_dir}"
+  export CLAUDEX_HARNESS_STATE_DIR="${state_root}/harness"
+  export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+  export CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1
+  export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
+  export CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=1
+  export CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1
+  export CLAUDE_CODE_SUBAGENT_MODEL=inherit
+  unset CLAUDE_CODE_EFFORT_LEVEL
+
+  exec "${claude_bin}" \
+    --settings "${profile_settings}" \
+    --setting-sources user \
+    --tools "${tool_list}" \
+    --agents "${agents_json}" \
+    --append-system-prompt "${harness_prompt}" \
+    --model "${model_id}" \
+    --effort "${effort}" \
+    "${permission_args[@]}" \
+    "${client_args[@]}"
+}
+
+case "${1:-run}" in
+  models)
+    show_models
+    ;;
+  version)
+    printf 'Claudex %s\n' "$(<"${release_root}/VERSION")"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  run)
+    shift
+    run_claude "$@"
+    ;;
+  *)
+    run_claude "$@"
+    ;;
+esac
