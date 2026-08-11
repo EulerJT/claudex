@@ -27,7 +27,6 @@ jobs:
       - name: Test
         env:
           NO_PROXY: 127.0.0.1,localhost
-          no_proxy: 127.0.0.1,localhost
         run: cargo test --manifest-path bridge/Cargo.toml --locked -- --test-threads=1
       - name: Release build
         run: cargo build --manifest-path bridge/Cargo.toml --release --locked
